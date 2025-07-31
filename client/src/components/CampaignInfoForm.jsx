@@ -38,17 +38,6 @@ const CampaignInfoForm = ({ values, onChange, errors }) => {
         {errors.contactList && <div className="text-red-500 text-sm mt-1">{errors.contactList}</div>}
       </div>
       <div>
-        <label className="block font-medium mb-1">Recipients</label>
-        <input
-          type="number"
-          name="recipients"
-          value={values.recipients}
-          onChange={onChange}
-          className="border rounded-md p-2 w-full"
-          min={0}
-        />
-      </div>
-      <div>
         <label className="block font-medium mb-1">Schedule Type <span className="text-red-500">*</span></label>
         <div className="flex gap-4">
           <label className="flex items-center gap-2">

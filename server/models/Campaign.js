@@ -8,13 +8,21 @@ const stepSchema = new mongoose.Schema({
   sentAt: { type: Date }
 });
 
+const recipientSchema = new mongoose.Schema({
+  email: { type: String, required: true },
+  status: { type: String, enum: ['Pending', 'Sent', 'Opened', 'Clicked', 'Error'], default: 'Pending' },
+  sentAt: Date,
+  openedAt: Date,
+  clickedAt: Date
+});
+
 const campaignSchema = new mongoose.Schema({
   name: { type: String, required: true },
   description: String,
   contactList: String,
   scheduleType: { type: String, enum: ['now', 'later'], required: true },
   scheduledAt: Date,
-  recipients: Number,
+  recipients: [recipientSchema],
   openRate: Number,
   clickRate: Number,
   status: { type: String, enum: ['Running', 'Completed', 'Scheduled'], default: 'Scheduled' },

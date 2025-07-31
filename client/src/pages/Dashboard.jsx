@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
-import { CalendarDays, ListTodo, Clock } from "lucide-react";
+import { CalendarDays, ListTodo, Clock, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const Dashboard = () => {
@@ -48,6 +48,17 @@ const Dashboard = () => {
     }
   };
 
+  // Helper function to get recipients count and status summary
+  const getRecipientsInfo = (recipients) => {
+    if (!Array.isArray(recipients)) return { count: 0, sent: 0, error: 0 };
+    
+    const count = recipients.length;
+    const sent = recipients.filter(r => r.status === 'Sent').length;
+    const error = recipients.filter(r => r.status === 'Error').length;
+    
+    return { count, sent, error };
+  };
+
   return (
     <div className="p-8">
       <h1 className="text-3xl font-bold mb-8 text-gray-800">
@@ -67,87 +78,112 @@ const Dashboard = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {campaigns.map((c) => (
-            <div
-              key={c._id}
-              className="bg-white rounded-xl shadow-md border border-gray-100 hover:shadow-lg transition-all duration-300 flex flex-col"
-            >
-              {/* Header */}
-              <div className="px-6 pt-6 pb-2 border-b border-gray-100">
-                <h2 className="text-lg font-semibold text-gray-900 truncate">
-                  {c.name}
-                </h2>
-                <p className="text-sm text-gray-500 mt-1 line-clamp-2">
-                  {c.description || (
-                    <span className="italic">No description provided</span>
-                  )}
-                </p>
-              </div>
-
-              {/* Content */}
-              <div className="px-6 py-4 flex-1 space-y-3 text-sm text-gray-700">
-                {/* Schedule */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-blue-500" />
-                    <span className="font-medium text-blue-600">
-                      {c.scheduleType === "now" ? "Send Now" : "Scheduled"}
-                    </span>
-                  </div>
-                  {c.scheduledAt && (
-                    <span className="text-xs text-gray-500">
-                      {format(new Date(c.scheduledAt), "PPP")}
-                    </span>
-                  )}
+          {campaigns.map((c) => {
+            const recipientsInfo = getRecipientsInfo(c.recipients);
+            return (
+              <div
+                key={c._id}
+                className="bg-white rounded-xl shadow-md border border-gray-100 hover:shadow-lg transition-all duration-300 flex flex-col"
+              >
+                {/* Header */}
+                <div className="px-6 pt-6 pb-2 border-b border-gray-100">
+                  <h2 className="text-lg font-semibold text-gray-900 truncate">
+                    {c.name}
+                  </h2>
+                  <p className="text-sm text-gray-500 mt-1 line-clamp-2">
+                    {c.description || (
+                      <span className="italic">No description provided</span>
+                    )}
+                  </p>
                 </div>
 
-                {/* Steps */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <ListTodo className="w-4 h-4 text-emerald-500" />
-                    <span>{c.steps?.length || 0} steps</span>
+                {/* Content */}
+                <div className="px-6 py-4 flex-1 space-y-3 text-sm text-gray-700">
+                  {/* Schedule */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-blue-500" />
+                      <span className="font-medium text-blue-600">
+                        {c.scheduleType === "now" ? "Send Now" : "Scheduled"}
+                      </span>
+                    </div>
+                    {c.scheduledAt && (
+                      <span className="text-xs text-gray-500">
+                        {format(new Date(c.scheduledAt), "PPP")}
+                      </span>
+                    )}
                   </div>
-                  {/* Dynamic status badge */}
-                  <span
-                    className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                      c.status === "Completed"
-                        ? "bg-green-100 text-green-700"
-                        : c.status === "Running"
-                        ? "bg-blue-100 text-blue-700"
-                        : "bg-gray-100 text-gray-600"
-                    }`}
+
+                  {/* Recipients */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Users className="w-4 h-4 text-purple-500" />
+                      <span>{recipientsInfo.count} recipients</span>
+                    </div>
+                    {recipientsInfo.count > 0 && (
+                      <div className="flex gap-1 text-xs">
+                        {recipientsInfo.sent > 0 && (
+                          <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                            {recipientsInfo.sent} sent
+                          </span>
+                        )}
+                        {recipientsInfo.error > 0 && (
+                          <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded-full">
+                            {recipientsInfo.error} failed
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Steps */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <ListTodo className="w-4 h-4 text-emerald-500" />
+                      <span>{c.steps?.length || 0} steps</span>
+                    </div>
+                    {/* Dynamic status badge */}
+                    <span
+                      className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                        c.status === "Completed"
+                          ? "bg-green-100 text-green-700"
+                          : c.status === "Running"
+                          ? "bg-blue-100 text-blue-700"
+                          : "bg-gray-100 text-gray-600"
+                      }`}
+                    >
+                      {c.status || "Draft"}
+                    </span>
+                  </div>
+
+                  {/* Created date */}
+                  <div className="flex items-center gap-2 text-xs text-gray-500">
+                    <CalendarDays className="w-4 h-4" />
+                    <span>
+                      Created: {c.createdAt ? format(new Date(c.createdAt), "PPP") : "-"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-2">
+                  <button
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition"
+                    onClick={() => navigate(`/campaigns/${c._id}`)}
                   >
-                    {c.status || "Draft"}
-                  </span>
-                </div>
-
-                {/* Created date */}
-                <div className="flex items-center gap-2 text-xs text-gray-500">
-                  <CalendarDays className="w-4 h-4" />
-                  <span>
-                    Created: {c.createdAt ? format(new Date(c.createdAt), "PPP") : "-"}
-                  </span>
+                    View Details
+                  </button>
+                  <button
+                    className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md transition"
+                    onClick={() => handleEndCampaign(c._id)}
+                    disabled={endingId === c._id}
+                  >
+                    {endingId === c._id ? "Ending..." : "End Campaign"}
+                  </button>
                 </div>
               </div>
-
-              {/* Footer */}
-              <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-2">
-                <button
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition"
-                  onClick={() => navigate(`/campaigns/${c._id}`)}
-                >
-                  View Details
-                </button>
-                <button
-                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md transition"
-                  onClick={() => handleEndCampaign(c._id)}
-                  disabled={endingId === c._id}
-                >
-                  {endingId === c._id ? "Ending..." : "End Campaign"}
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

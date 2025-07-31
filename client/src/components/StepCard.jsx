@@ -32,48 +32,16 @@ const StepCard = ({ step, index, onChange, onRemove, errors = {} }) => {
       {step.type === "send_email" && (
         <>
           <div className="mb-2">
-            <label className="block font-medium mb-1">To Email Address(es)</label>
-            <input
-              type="text"
-              name="to"
-              value={step.to || ""}
-              onChange={(e) => handleField("to", e.target.value)}
-              className="border rounded-md p-2 w-full"
-              placeholder="e.g. user@example.com, user2@example.com"
-            />
-            {errors.to && <div className="text-red-500 text-xs mt-1">{errors.to}</div>}
-          </div>
-          <div className="mb-2">
-            <label className="block font-medium mb-1">Subject</label>
-            <input
-              type="text"
-              name="subject"
-              value={step.subject || ""}
-              onChange={(e) => handleField("subject", e.target.value)}
-              className="border rounded-md p-2 w-full"
-            />
-            {errors.subject && <div className="text-red-500 text-xs mt-1">{errors.subject}</div>}
-          </div>
-          <div className="mb-2">
-            <label className="block font-medium mb-1">Body</label>
+            <label className="block font-medium mb-1">Email Template <span className="text-red-500">*</span></label>
             <textarea
-              name="body"
-              value={step.body || ""}
-              onChange={(e) => handleField("body", e.target.value)}
-              className="border rounded-md p-2 w-full"
-              rows={4}
-            />
-            {errors.body && <div className="text-red-500 text-xs mt-1">{errors.body}</div>}
-          </div>
-          <div className="mb-2">
-            <label className="block font-medium mb-1">Template Name</label>
-            <input
-              type="text"
               name="template"
               value={step.template || ""}
               onChange={(e) => handleField("template", e.target.value)}
               className="border rounded-md p-2 w-full"
+              rows={6}
+              placeholder="Enter your email template content here..."
             />
+            {errors.template && <div className="text-red-500 text-xs mt-1">{errors.template}</div>}
           </div>
           <div className="mb-2">
             <label className="block font-medium mb-1">Status</label>
@@ -104,14 +72,14 @@ const StepCard = ({ step, index, onChange, onRemove, errors = {} }) => {
       {step.type === "wait" && (
         <>
           <div className="mb-2">
-            <label className="block font-medium mb-1">Duration</label>
+            <label className="block font-medium mb-1">Duration <span className="text-red-500">*</span></label>
             <input
               type="text"
               name="duration"
               value={step.duration || ""}
               onChange={(e) => handleField("duration", e.target.value)}
               className="border rounded-md p-2 w-full"
-              placeholder="e.g. 2 days"
+              placeholder="e.g. 2 days, 1 week, 24 hours"
             />
             {errors.duration && <div className="text-red-500 text-xs mt-1">{errors.duration}</div>}
           </div>

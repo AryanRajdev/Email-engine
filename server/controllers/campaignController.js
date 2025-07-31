@@ -1,5 +1,5 @@
 import Campaign from '../models/Campaign.js';
-import sgMail from '@sendgrid/mail';
+import sgMail from '@sendgrid/mail'
 
 // POST /api/campaigns
 export const createCampaign = async (req, res) => {
@@ -83,38 +83,91 @@ export const launchCampaign = async (req, res) => {
     if (!campaignData || !Array.isArray(campaignData.steps) || campaignData.steps.length === 0) {
       return res.status(400).json({ error: 'Invalid campaign data or no steps provided.' });
     }
+    
+    // Validate recipients array
+    if (!campaignData.recipients || !Array.isArray(campaignData.recipients) || campaignData.recipients.length === 0) {
+      return res.status(400).json({ error: 'Recipients array is required and must not be empty.' });
+    }
+    
     let hasError = false;
+    
     for (let i = 0; i < campaignData.steps.length; i++) {
       const step = campaignData.steps[i];
       if (step.type === 'send_email') {
         // Validate required fields
-        if (!step.template || !campaignData.recipients || !Array.isArray(campaignData.recipients) || campaignData.recipients.length === 0) {
+        if (!step.template) {
           step.status = 'Error';
           hasError = true;
           continue;
         }
-        const msg = {
-          to: campaignData.recipients, // array of emails
-          from: process.env.SENDGRID_FROM_EMAIL, // must be verified sender
-          subject: campaignData.name || 'Campaign Email',
-          html: step.template,
-        };
-        try {
-          await sgMail.sendMultiple(msg);
-          step.status = 'Sent';
-          step.sentAt = new Date();
-        } catch (err) {
-          step.status = 'Error';
-          hasError = true;
+        
+        // Initialize recipients array if not exists
+        if (!campaignData.recipients) {
+          campaignData.recipients = [];
         }
+        
+        // Send emails individually to each recipient
+        for (const recipient of campaignData.recipients) {
+          // Extract email from recipient object
+          const recipientEmail = typeof recipient === 'object' ? recipient.email : recipient;
+          
+          const msg = {
+            to: recipientEmail,
+            from: process.env.SENDGRID_FROM_EMAIL,
+            subject: campaignData.name || 'Campaign Email',
+            html: step.template,
+          };
+          
+          try {
+            await sgMail.send(msg);
+            
+            // Update recipient object with status
+            if (typeof recipient === 'object') {
+              recipient.status = 'Sent';
+              recipient.sentAt = new Date();
+            } else {
+              // Convert string to object if needed
+              const recipientIndex = campaignData.recipients.indexOf(recipient);
+              campaignData.recipients[recipientIndex] = {
+                email: recipient,
+                status: 'Sent',
+                sentAt: new Date()
+              };
+            }
+          } catch (err) {
+            console.error(`Failed to send email to ${recipientEmail}:`, err);
+            
+            // Update recipient object with error status
+            if (typeof recipient === 'object') {
+              recipient.status = 'Error';
+              recipient.sentAt = new Date();
+            } else {
+              // Convert string to object if needed
+              const recipientIndex = campaignData.recipients.indexOf(recipient);
+              campaignData.recipients[recipientIndex] = {
+                email: recipient,
+                status: 'Error',
+                sentAt: new Date()
+              };
+            }
+            hasError = true;
+          }
+        }
+        
+        // Update step status
+        step.status = hasError ? 'Error' : 'Sent';
+        step.sentAt = new Date();
       }
     }
-    // Save campaign with updated step statuses
+    
+    // Save campaign with updated step statuses and recipient statuses
     const campaign = new Campaign(campaignData);
     await campaign.save();
+    
     if (hasError) {
       return res.status(400).json({ error: 'One or more emails failed to send.', campaign });
     }
+    
     res.status(200).json({ message: 'Campaign launched and emails sent.', campaign });
   } catch (err) {
     console.error(err);

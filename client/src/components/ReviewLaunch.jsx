@@ -1,7 +1,7 @@
 import React from "react";
 import { format } from "date-fns";
 
-const ReviewLaunch = ({ values, steps, onSubmit, loading, error }) => {
+const ReviewLaunch = ({ values, steps, recipients, onSubmit, loading, error }) => {
   return (
     <div className="space-y-6">
       <div className="bg-gray-50 rounded-xl p-4 shadow-sm">
@@ -41,6 +41,25 @@ const ReviewLaunch = ({ values, steps, onSubmit, loading, error }) => {
           </div>
         )}
       </div>
+      
+      <div className="bg-gray-50 rounded-xl p-4 shadow-sm">
+        <h2 className="text-lg font-semibold mb-2">Recipients ({recipients.length})</h2>
+        {recipients.length === 0 ? (
+          <div className="text-gray-500">No recipients added.</div>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {recipients.map((recipient, index) => (
+              <div
+                key={index}
+                className="bg-white px-3 py-1 rounded-full border text-sm"
+              >
+                {recipient.email}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      
       <div className="bg-gray-50 rounded-xl p-4 shadow-sm">
         <h2 className="text-lg font-semibold mb-2">Steps</h2>
         {steps.length === 0 ? (
@@ -54,13 +73,6 @@ const ReviewLaunch = ({ values, steps, onSubmit, loading, error }) => {
                   {step.template && `: ${step.template}`}
                   {step.duration && `: ${step.duration}`}
                 </div>
-                {step.type === 'send_email' && (
-                  <div className="text-xs text-gray-700">
-                    <div><span className="font-semibold">To:</span> {step.to}</div>
-                    <div><span className="font-semibold">Subject:</span> {step.subject}</div>
-                    <div><span className="font-semibold">Body:</span> <span className="whitespace-pre-line">{step.body}</span></div>
-                  </div>
-                )}
                 <div className="text-xs text-gray-500">
                   Status: {step.status}
                   {step.sentAt && ` | Sent At: ${format(new Date(step.sentAt), 'PPP p')}`}

@@ -8,7 +8,6 @@ const initialCampaign = {
   name: "",
   description: "",
   contactList: "",
-  recipients: "",
   scheduleType: "now",
   scheduledAt: "",
   status: "Scheduled",
@@ -28,32 +27,60 @@ const stepsConfig = [
   },
   {
     label: "Steps",
-    validate: (campaign, steps) => {
+    validate: (campaign, steps, recipients) => {
       const errs = {};
       const stepErrors = [];
-      if (!Array.isArray(steps) || steps.length === 0) errs.steps = "At least one step is required";
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      steps.forEach((step, i) => {
-        const sErr = {};
-        if (!step.type) sErr.type = "Type is required";
-        if (step.type === "send_email") {
-          if (!step.to) sErr.to = "To email is required";
-          else {
-            // Support multiple comma-separated emails
-            const emails = step.to.split(',').map(e => e.trim()).filter(Boolean);
-            if (emails.length === 0 || !emails.every(e => emailRegex.test(e))) {
-              sErr.to = "Enter valid email address(es)";
+      
+      // Validate recipients - simple and clear
+      if (!recipients || recipients.length === 0) {
+        errs.recipients = "At least one recipient is required";
+      } else {
+        // Validate each recipient has a valid email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const invalidRecipients = recipients.filter(r => {
+          const email = typeof r === 'object' ? r.email : r;
+          return !email || !emailRegex.test(email);
+        });
+        
+        if (invalidRecipients.length > 0) {
+          errs.recipients = "All recipients must have valid email addresses";
+        }
+      }
+      
+      // Validate steps - simple and clear
+      if (!steps || steps.length === 0) {
+        errs.steps = "At least one step is required";
+      } else {
+        steps.forEach((step, i) => {
+          const sErr = {};
+          
+          // Step type is required
+          if (!step.type) {
+            sErr.type = "Step type is required";
+          }
+          
+          // Validate based on step type
+          if (step.type === "send_email") {
+            if (!step.template || step.template.trim() === "") {
+              sErr.template = "Email template is required";
+            }
+          } else if (step.type === "wait") {
+            if (!step.duration || step.duration.trim() === "") {
+              sErr.duration = "Wait duration is required";
             }
           }
-          if (!step.subject) sErr.subject = "Subject is required";
-          if (!step.body) sErr.body = "Body is required";
-        }
-        if (step.type === "wait" && !step.duration) sErr.duration = "Duration is required";
-        stepErrors.push(sErr);
-      });
-      errs.stepErrors = stepErrors;
-      // If any step has errors, block next
-      if (stepErrors.some(e => Object.keys(e).length > 0)) errs.hasStepErrors = true;
+          
+          stepErrors.push(sErr);
+        });
+      }
+      
+      // Add step errors to main errors object ONLY if there are actual errors
+      const hasStepErrors = stepErrors.some(e => Object.keys(e).length > 0);
+      if (hasStepErrors) {
+        errs.stepErrors = stepErrors;
+        errs.hasStepErrors = true;
+      }
+      
       return errs;
     },
   },
@@ -67,6 +94,7 @@ const CreateCampaign = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [campaign, setCampaign] = useState(initialCampaign);
   const [steps, setSteps] = useState([]);
+  const [recipients, setRecipients] = useState([]);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [submitError, setSubmitError] = useState("");
@@ -75,7 +103,7 @@ const CreateCampaign = () => {
   // Per-step validation
   const validateStep = (stepIdx = currentStep) => {
     const config = stepsConfig[stepIdx];
-    const errs = config.validate(campaign, steps);
+    const errs = config.validate(campaign, steps, recipients);
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -86,7 +114,12 @@ const CreateCampaign = () => {
   };
 
   const handleNext = () => {
-    if (!validateStep(currentStep)) return;
+    const isValid = validateStep(currentStep);
+    
+    if (!isValid) {
+      return; // Don't advance if validation fails
+    }
+    
     setErrors({});
     setCurrentStep((s) => s + 1);
   };
@@ -104,10 +137,20 @@ const CreateCampaign = () => {
     setLoading(true);
     setSubmitError("");
     try {
-      // Prepare payload
+      // Convert recipients to the correct format for backend (array of objects)
+      const recipientObjects = recipients.map(r => {
+        if (typeof r === 'object' && r.email) {
+          return r; // Already in correct format
+        } else if (typeof r === 'string') {
+          return { email: r }; // Convert string to object
+        }
+        return { email: r }; // Fallback
+      });
+      
+      // Prepare payload with recipients array structure
       const payload = {
         ...campaign,
-        recipients: Number(campaign.recipients) || 0,
+        recipients: recipientObjects, // Array of objects with email property
         openRate: 0,
         clickRate: 0,
         scheduledAt: campaign.scheduleType === "later" && campaign.scheduledAt ? new Date(campaign.scheduledAt) : null,
@@ -120,6 +163,7 @@ const CreateCampaign = () => {
           sentAt: step.sentAt ? new Date(step.sentAt) : undefined,
         })),
       };
+      
       // POST to backend
       const res = await fetch("http://localhost:3001/api/campaigns", {
         method: "POST",
@@ -162,16 +206,40 @@ const CreateCampaign = () => {
         )}
         {currentStep === 1 && (
           <div>
-            <StepBuilder steps={steps} setSteps={setSteps} errors={errors.stepErrors || {}} />
-            {errors.steps && <div className="text-red-500 text-sm mt-2">{errors.steps}</div>}
-            {/* Per-step errors */}
-            {errors.hasStepErrors && <div className="text-red-500 text-xs mt-2">Please fix errors above before continuing.</div>}
+            <StepBuilder 
+              steps={steps} 
+              setSteps={setSteps} 
+              recipients={recipients}
+              setRecipients={setRecipients}
+              errors={errors} 
+            />
+            
+            {/* Validation Error Messages */}
+            <div className="mt-4 space-y-2">
+              {errors.recipients && (
+                <div className="text-red-500 text-sm p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <strong>Recipients Error:</strong> {errors.recipients}
+                </div>
+              )}
+              {errors.steps && (
+                <div className="text-red-500 text-sm p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <strong>Steps Error:</strong> {errors.steps}
+                </div>
+              )}
+              {errors.hasStepErrors && (
+                <div className="text-red-500 text-sm p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <strong>Step Validation Error:</strong> Please fix the errors in your steps before continuing.
+                </div>
+              )}
+            </div>
+            
           </div>
         )}
         {currentStep === 2 && (
           <ReviewLaunch
             values={campaign}
             steps={steps}
+            recipients={recipients}
             onSubmit={handleSubmit}
             loading={loading}
             error={submitError}
