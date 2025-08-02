@@ -51,11 +51,13 @@ const Dashboard = () => {
   // Helper function to get recipients count and status summary
   const getRecipientsInfo = (recipients) => {
     if (!Array.isArray(recipients)) return { count: 0, sent: 0, error: 0 };
-    
+
     const count = recipients.length;
-    const sent = recipients.filter(r => r.status === 'Sent').length;
-    const error = recipients.filter(r => r.status === 'Error').length;
-    
+    const sent = recipients.filter((r) => r.status === "Sent").length;
+    const error = recipients.filter((r) => r.status === "Error").length;
+
+    console.log("Recipients Info:", { count, sent, error }); // Debugging line
+
     return { count, sent, error };
   };
 
@@ -64,7 +66,9 @@ const Dashboard = () => {
       <h1 className="text-3xl font-bold mb-8 text-gray-800">
         Campaign Dashboard
       </h1>
-      {endError && <div className="text-red-500 text-center mb-4">{endError}</div>}
+      {endError && (
+        <div className="text-red-500 text-center mb-4">{endError}</div>
+      )}
       {/* Loading & error states */}
       {loading ? (
         <div className="text-gray-500 text-center text-lg">
@@ -160,7 +164,8 @@ const Dashboard = () => {
                   <div className="flex items-center gap-2 text-xs text-gray-500">
                     <CalendarDays className="w-4 h-4" />
                     <span>
-                      Created: {c.createdAt ? format(new Date(c.createdAt), "PPP") : "-"}
+                      Created:{" "}
+                      {c.createdAt ? format(new Date(c.createdAt), "PPP") : "-"}
                     </span>
                   </div>
                 </div>
