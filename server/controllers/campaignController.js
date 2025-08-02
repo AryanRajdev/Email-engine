@@ -75,7 +75,8 @@ export const deleteCampaign = async (req, res) => {
   }
 };
 
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+sgMail.setApiKey('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');
+
 
 export const launchCampaign = async (req, res) => {
   try {
@@ -89,7 +90,11 @@ export const launchCampaign = async (req, res) => {
       return res.status(400).json({ error: 'Recipients array is required and must not be empty.' });
     }
     
-    let hasError = false;
+    const emailResults = {
+      successful: [],
+      failed: [],
+      total: 0
+    };
     
     for (let i = 0; i < campaignData.steps.length; i++) {
       const step = campaignData.steps[i];
@@ -97,7 +102,7 @@ export const launchCampaign = async (req, res) => {
         // Validate required fields
         if (!step.template) {
           step.status = 'Error';
-          hasError = true;
+          step.error = 'Template is required for send_email step';
           continue;
         }
         
@@ -106,57 +111,105 @@ export const launchCampaign = async (req, res) => {
           campaignData.recipients = [];
         }
         
-        // Send emails individually to each recipient
-        for (const recipient of campaignData.recipients) {
-          // Extract email from recipient object
+        // Prepare email promises for parallel sending
+        const emailPromises = campaignData.recipients.map(async (recipient) => {
           const recipientEmail = typeof recipient === 'object' ? recipient.email : recipient;
           
           const msg = {
             to: recipientEmail,
-            from: process.env.SENDGRID_FROM_EMAIL,
+            from: "aryanraj24032002@gmail.com",
             subject: campaignData.name || 'Campaign Email',
             html: step.template,
           };
           
-          try {
-            await sgMail.send(msg);
+          return {
+            recipient,
+            recipientEmail,
+            promise: sgMail.send(msg)
+          };
+        });
+        
+        // Send all emails in parallel using Promise.allSettled
+        console.log(`📧 Sending ${emailPromises.length} emails in parallel for step ${i + 1}...`);
+        const results = await Promise.allSettled(emailPromises.map(item => item.promise));
+        
+        // Process results and update recipient statuses
+        results.forEach((result, index) => {
+          const { recipient, recipientEmail } = emailPromises[index];
+          const currentTime = new Date();
+          
+          if (result.status === 'fulfilled') {
             
-            // Update recipient object with status
+            // Update recipient object with success status
             if (typeof recipient === 'object') {
               recipient.status = 'Sent';
-              recipient.sentAt = new Date();
+              recipient.sentAt = currentTime;
             } else {
               // Convert string to object if needed
               const recipientIndex = campaignData.recipients.indexOf(recipient);
               campaignData.recipients[recipientIndex] = {
                 email: recipient,
                 status: 'Sent',
-                sentAt: new Date()
+                sentAt: currentTime
               };
             }
-          } catch (err) {
-            console.error(`Failed to send email to ${recipientEmail}:`, err);
+            
+            emailResults.successful.push({
+              email: recipientEmail,
+              status: 'Sent',
+              sentAt: currentTime
+            });
+            
+          } else {
+            // Email failed to send
+            const error = result.reason;
+            console.error(`❌ Failed to send email to ${recipientEmail}:`, error);
+            
+            // Log detailed SendGrid error information
+            if (error.response?.body) {
+              console.error('SendGrid error details:', {
+                message: error.message,
+                response: error.response.body,
+                statusCode: error.response.statusCode
+              });
+            }
             
             // Update recipient object with error status
             if (typeof recipient === 'object') {
               recipient.status = 'Error';
-              recipient.sentAt = new Date();
+              recipient.error = error.message;
+              recipient.sentAt = currentTime;
             } else {
               // Convert string to object if needed
               const recipientIndex = campaignData.recipients.indexOf(recipient);
               campaignData.recipients[recipientIndex] = {
                 email: recipient,
                 status: 'Error',
-                sentAt: new Date()
+                error: error.message,
+                sentAt: currentTime
               };
             }
-            hasError = true;
+            
+            emailResults.failed.push({
+              email: recipientEmail,
+              status: 'Error',
+              error: error.message,
+              sentAt: currentTime
+            });
           }
-        }
+        });
         
-        // Update step status
-        step.status = hasError ? 'Error' : 'Sent';
+        // Update step status based on results
+        const hasErrors = emailResults.failed.length > 0;
+        step.status = hasErrors ? 'Error' : 'Sent';
         step.sentAt = new Date();
+        step.emailResults = {
+          successful: emailResults.successful.length,
+          failed: emailResults.failed.length,
+          total: emailResults.successful.length + emailResults.failed.length
+        };
+        
+        emailResults.total += step.emailResults.total;
       }
     }
     
@@ -164,13 +217,37 @@ export const launchCampaign = async (req, res) => {
     const campaign = new Campaign(campaignData);
     await campaign.save();
     
-    if (hasError) {
-      return res.status(400).json({ error: 'One or more emails failed to send.', campaign });
+    // Prepare response with detailed breakdown
+    const totalEmails = emailResults.successful.length + emailResults.failed.length;
+    const successRate = totalEmails > 0 ? ((emailResults.successful.length / totalEmails) * 100).toFixed(1) : 0;
+    
+    if (emailResults.failed.length > 0) {
+      return res.status(200).json({ 
+        message: `Campaign launched with mixed results. ${emailResults.successful.length} emails sent successfully, ${emailResults.failed.length} failed.`,
+        campaign,
+        emailResults: {
+          successful: emailResults.successful.length,
+          failed: emailResults.failed.length,
+          total: totalEmails,
+          successRate: `${successRate}%`
+        },
+        failedEmails: emailResults.failed.map(f => ({ email: f.email, error: f.error }))
+      });
+    } else {
+      return res.status(200).json({ 
+        message: `Campaign launched successfully! All ${emailResults.successful.length} emails sent.`,
+        campaign,
+        emailResults: {
+          successful: emailResults.successful.length,
+          failed: 0,
+          total: totalEmails,
+          successRate: '100%'
+        }
+      });
     }
     
-    res.status(200).json({ message: 'Campaign launched and emails sent.', campaign });
   } catch (err) {
-    console.error(err);
+    console.error('❌ Campaign launch failed:', err);
     res.status(500).json({ error: err.message });
   }
 };

@@ -4,7 +4,7 @@ const stepSchema = new mongoose.Schema({
   type: { type: String, enum: ['send_email', 'wait'], required: true },
   template: { type: String },     // required for send_email
   duration: { type: String },     // required for wait
-  status: { type: String, enum: ['Pending', 'Sent', 'Waiting', 'Completed'], default: 'Pending' },
+  status: { type: String, enum: ['Pending', 'Sent', 'Waiting', 'Completed','Error'], default: 'Pending' },
   sentAt: { type: Date }
 });
 

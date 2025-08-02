@@ -164,18 +164,30 @@ const CreateCampaign = () => {
         })),
       };
       
-      // POST to backend
-      const res = await fetch("http://localhost:3001/api/campaigns", {
+      // POST to backend - use launch endpoint for sending emails
+      const res = await fetch("http://localhost:3001/api/campaigns/launch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
+      const data = await res.json();
+      
       if (!res.ok) {
-        const data = await res.json();
         setSubmitError(data.error || "Failed to launch campaign");
         setCurrentStep(2);
         return;
       }
+      
+      // Handle partial success (207 status)
+      if (res.status === 207) {
+        const successCount = data.successfulEmails || 0;
+        const totalCount = data.totalEmails || 0;
+        setSubmitError(`Campaign launched with partial success. ${successCount}/${totalCount} emails sent successfully.`);
+        setCurrentStep(2);
+        return;
+      }
+      
+      // Success case
       navigate("/dashboard");
     } catch (err) {
       setSubmitError(err.message || "Failed to launch campaign");
