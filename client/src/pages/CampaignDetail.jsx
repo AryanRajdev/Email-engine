@@ -18,7 +18,7 @@ const CampaignDetail = () => {
         const data = await res.json();
         setCampaign(data);
       } catch (err) {
-        setError("Failed to fetch campaign");
+        setError("Failed to fetch campaign",err);
       } finally {
         setLoading(false);
       }

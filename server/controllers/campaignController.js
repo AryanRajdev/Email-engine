@@ -75,7 +75,7 @@ export const deleteCampaign = async (req, res) => {
   }
 };
 
-sgMail.setApiKey('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');
+sgMail.setApiKey('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');
 
 
 export const launchCampaign = async (req, res) => {
