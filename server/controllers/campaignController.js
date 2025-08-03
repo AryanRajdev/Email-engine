@@ -1,5 +1,11 @@
+import dotenv from 'dotenv';
 import Campaign from '../models/Campaign.js';
-import sgMail from '@sendgrid/mail'
+import sgMail from '@sendgrid/mail';
+
+// Load environment variables
+dotenv.config();
+
+
 
 // POST /api/campaigns
 export const createCampaign = async (req, res) => {

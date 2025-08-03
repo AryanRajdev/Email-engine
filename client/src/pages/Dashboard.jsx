@@ -19,7 +19,7 @@ const Dashboard = () => {
         const data = await res.json();
         setCampaigns(Array.isArray(data) ? data : data.campaigns || []);
       } catch (err) {
-        setError("Failed to fetch campaigns");
+        setError("Failed to fetch campaigns",err);
       } finally {
         setLoading(false);
       }
