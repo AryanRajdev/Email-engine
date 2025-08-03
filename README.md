@@ -90,14 +90,6 @@ A multi-step email campaign builder application using SendGrid for email deliver
 - ✅ Error handling
 - ✅ CORS configuration
 
-## Troubleshooting
-
-### Emails not being received?
-
-1. **Check SendGrid Suppressions**: https://app.sendgrid.com/suppressions
-2. **Verify Sender Authentication**: https://app.sendgrid.com/settings/sender_auth
-3. **Check API Key Permissions**: Ensure your SendGrid API key has proper permissions
-4. **Review Server Logs**: Check console for detailed error messages
 
 ### Common Issues
 
@@ -131,6 +123,3 @@ A multi-step email campaign builder application using SendGrid for email deliver
 - **Email Service**: SendGrid
 - **Database**: MongoDB with Mongoose
 
-## License
-
-MIT License 
