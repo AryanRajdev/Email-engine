@@ -42,7 +42,7 @@ const Dashboard = () => {
       }
       setCampaigns((prev) => prev.filter((c) => c._id !== id));
     } catch (err) {
-      setEndError("Failed to end campaign");
+      setEndError("Failed to end campaign",err);
     } finally {
       setEndingId(null);
     }

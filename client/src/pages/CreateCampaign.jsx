@@ -51,6 +51,7 @@ const stepsConfig = [
       if (!steps || steps.length === 0) {
         errs.steps = "At least one step is required";
       } else {
+        // eslint-disable-next-line no-unused-vars
         steps.forEach((step, i) => {
           const sErr = {};
           

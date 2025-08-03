@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-unused-vars
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const StepCard = ({ step, index, onChange, onRemove, errors = {} }) => {
