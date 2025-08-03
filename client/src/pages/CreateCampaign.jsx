@@ -165,7 +165,7 @@ const CreateCampaign = () => {
       };
       
       // POST to backend - use launch endpoint for sending emails
-      const res = await fetch("http://localhost:3001/api/campaigns/launch", {
+      const res = await fetch("https://email-engine-backend.onrender.com/api/campaigns/launch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

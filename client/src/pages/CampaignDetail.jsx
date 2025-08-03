@@ -13,7 +13,7 @@ const CampaignDetail = () => {
     const fetchCampaign = async () => {
       try {
         setLoading(true);
-        const res = await fetch(`http://localhost:3001/api/campaigns/${id}`);
+        const res = await fetch(`https://email-engine-backend.onrender.com/api/campaigns/${id}`);
         if (!res.ok) throw new Error("Failed to fetch campaign");
         const data = await res.json();
         setCampaign(data);

@@ -15,7 +15,7 @@ const Dashboard = () => {
     const fetchCampaigns = async () => {
       try {
         setLoading(true);
-        const res = await fetch("http://localhost:3001/api/campaigns");
+        const res = await fetch("https://email-engine-backend.onrender.com/api/campaigns");
         const data = await res.json();
         setCampaigns(Array.isArray(data) ? data : data.campaigns || []);
       } catch (err) {
@@ -31,7 +31,7 @@ const Dashboard = () => {
     setEndingId(id);
     setEndError("");
     try {
-      const res = await fetch(`http://localhost:3001/api/campaigns/${id}`, {
+      const res = await fetch(`https://email-engine-backend.onrender.com/api/campaigns/${id}`, {
         method: "DELETE",
       });
       if (!res.ok) {
