@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-unused-vars
 import React, { useState } from "react";
 import StepCard from "./StepCard";
 
@@ -39,7 +40,6 @@ const StepBuilder = ({ steps, setSteps, errors = {}, recipients, setRecipients }
     }
   };
 
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   return (
     <div>
