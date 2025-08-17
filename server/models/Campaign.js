@@ -13,7 +13,8 @@ const recipientSchema = new mongoose.Schema({
   status: { type: String, enum: ['Pending', 'Sent', 'Opened', 'Clicked', 'Error'], default: 'Pending' },
   sentAt: Date,
   openedAt: Date,
-  clickedAt: Date
+  clickedAt: Date,
+  error: String // Add error field for failed emails
 });
 
 const campaignSchema = new mongoose.Schema({
